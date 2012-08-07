@@ -24,8 +24,8 @@
 # description: TwonkyMedia UPnP server
 #
 #==================================================================[ Setup ]===
-
-WORKDIR1=/usr/local/twonky
+. /usr/local/sbin/share-param.sh
+WORKDIR1="$twonky_dir"
 WORKDIR2="`dirname $0`"
 PIDFILE=/var/run/mediaserver.pid
 
@@ -45,12 +45,12 @@ else
   # Reset commands if not available
   rc_status() {
     case "$1" in
-	-v)
-	    true
-	    ;;
-	*)
-	    false
-	    ;;
+        -v)
+            true
+            ;;
+        *)
+            false
+            ;;
     esac
     echo
   }
@@ -71,8 +71,8 @@ cd $WORKDIR
 
 case "$1" in
   start)
-  
-	if [ -e $PIDFILE ]; then
+
+        if [ -e $PIDFILE ]; then
       PID=`cat $PIDFILE`
       echo "TwonkyMedia server seems already be running under PID $PID"
       echo "(PID file $PIDFILE already exists). Checking for process..."
@@ -89,19 +89,21 @@ case "$1" in
       exit 0
     else
       if [ ! -x "${TWONKYSRV}" ]; then
-	  echo "TwonkyMedia server not found".
-	  rc_status -u
-	  exit $?
+          echo "TwonkyMedia server not found".
+          rc_status -u
+          exit $?
       fi
       echo -n "Starting $TWONKYSRV... "
-	  if [ "`/usr/local/sbin/getServiceStartup.sh twonky`" == "disabled" ]; then
-		echo " disabled";
-		exit 0;
-	  fi
-	  renice 0 -p $$
-      nice -n $twonky_nice "$TWONKYSRV" -D 
+          if [ "`/usr/local/sbin/getServiceStartup.sh twonky`" == "disabled" ]; then
+                echo " disabled";
+                exit 0;
+          fi
+          renice 0 -p $$
+      nice -n $twonky_nice "$TWONKYSRV" -D  -appdata /CacheVolume/twonkymedia -logfile /CacheVolume/twonkymedia/twonkymedia-log.txt
 
-	
+          # after 10 seconds, write twonky config from file
+          ( sleep 10; /usr/local/sbin/writeTwonkyContentDir.sh ) &
+
       rc_status -v
     fi
   ;;
@@ -134,7 +136,7 @@ case "$1" in
   ;;
   restart)
     $0 stop
-	sleep 2
+        sleep 2
     $0 start
   ;;
   status)
@@ -142,7 +144,7 @@ case "$1" in
       running="`ps ax --no-headers | grep -e twonkymedia | grep -v grep | grep -v twonkymedia.sh | cut -d ' ' -f 1`"
       if [ "${running}" == "" ]; then
         echo "No TwonkyMedia server is running"
-		exit 1
+                exit 1
       else
         echo "A TwonkyMedia server seems to be running with PID ${running}, but no PID file exists."
         echo "Probably no write permission for ${PIDFILE}."
